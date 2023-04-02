@@ -1,0 +1,6 @@
+node_modules/
+public/upload/*
+chat-content.txt
+
+.idea
+.DS_Store
