@@ -1,9 +1,21 @@
 const socket = io();
 let autoScroll = true
 
+function uuidV4() {
+    const uuid = new Array(36);
+    for (let i = 0; i < 36; i++) {
+        uuid[i] = Math.floor(Math.random() * 16);
+    }
+    uuid[14] = 4; // set bits 12-15 of time-high-and-version to 0100
+    uuid[19] = uuid[19] &= ~(1 << 2); // set bit 6 of clock-seq-and-reserved to zero
+    uuid[19] = uuid[19] |= (1 << 3); // set bit 7 of clock-seq-and-reserved to one
+    uuid[8] = uuid[13] = uuid[18] = uuid[23] = '-';
+    return uuid.map((x) => x.toString(16)).join('');
+}
+
 function getMsgNode (msg) {
     let messageNode = $('<li>').text(msg)
-    if (msg.includes('文件上传成功')) {
+    if (msg.includes('🎉文件上传成功')) {
         messageNode = $('<li>').html(msg)
     }
     return messageNode
@@ -22,12 +34,6 @@ socket.on('chat message', function (msg) {
     autoScroll && scrollBottom()
 });
 
-// 处理服务器发送过来的文件上传消息
-socket.on('file upload', function (fileName) {
-    socket.emit('chat message', `文件上传成功: <a href="/upload/${fileName}" download>${fileName}</a>`)
-    autoScroll && scrollBottom()
-});
-
 socket.on('chat history', function (chatHistory) {
     const messagesDiv = $('#messages');
     messagesDiv.empty()
@@ -36,8 +42,43 @@ socket.on('chat history', function (chatHistory) {
     })
 });
 
+$('input[type="file"]').click(function () {
+    $('#upload-percent').text('');
+})
+
 // 上传文件
 const fileForm = $('#file-form');
+
+function upload (formData) {
+    $.ajax({
+        url: '/upload',
+        type: 'POST',
+        data: formData,
+        processData: false,
+        contentType: false,
+        xhr: function () {
+            var xhr = $.ajaxSettings.xhr()
+            xhr.upload.onprogress = function (e) {
+                if (e.lengthComputable) {
+                    var percent = Math.round((e.loaded / e.total) * 100)
+                    $('#upload-percent').text(percent + '%')
+                }
+            }
+            return xhr
+        },
+        success: function (data) {
+            let message = `🎉文件上传成功: <a href="/upload/${data.fileName}" download>${data.fileName}</a>`
+            if (/\.(png|jpg|jpeg|gif)/i.test(data.fileName)) {
+                message += `<div><img src="/upload/${data.fileName}" /></div>`
+            }
+            socket.emit('chat message', message)
+        },
+        error: function (xhr, status, error) {
+            alert('文件上传失败：' + error)
+        }
+    })
+}
+
 fileForm.submit(function (e) {
     e.preventDefault();
     const fileInput = fileForm.find('input[type=file]')[0];
@@ -45,20 +86,7 @@ fileForm.submit(function (e) {
     const fileName = encodeURIComponent(file.name); // 对文件名进行编码
     const formData = new FormData();
     formData.append('file', file, fileName);
-    $.ajax({
-        url: '/upload',
-        type: 'POST',
-        data: formData,
-        processData: false,
-        contentType: false,
-        success: function (data) {
-            socket.emit('chat message', `文件上传成功: <a href="/upload/${data.fileName}" download>${data.fileName}</a>`)
-            scrollBottom()
-        },
-        error: function (xhr, status, error) {
-            alert('文件上传失败：' + error);
-        }
-    });
+    upload(formData)
 });
 
 $('#myTextarea').keydown(function(event) {
@@ -76,6 +104,36 @@ $('#myTextarea').keydown(function(event) {
         const message = messageInput.val();
         socket.emit('chat message', message);
         messageInput.val('');
+    }
+}).on('paste', function(event) {
+    // 取得剪贴板数据
+    const items = (event.clipboardData || event.originalEvent.clipboardData).items;
+
+    // 遍历剪贴板中的所有数据项
+    for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+
+        // 如果是图像数据
+        if (item.type.indexOf("image") !== -1) {
+            // 从数据项中获取图像文件
+            const blob = item.getAsFile();
+
+            // 创建一个 URL 对象
+            const url = URL.createObjectURL(blob);
+
+            // 创建一个图像元素
+            const img = document.createElement('img');
+
+            // 设置图像的 src 属性
+            img.src = url;
+
+            // 将图像添加到表单中
+            const formData = new FormData();
+            formData.append('file', blob, `image-${uuidV4()}.png`);
+            upload(formData)
+
+            $('#myTextarea').val('');
+        }
     }
 });
 

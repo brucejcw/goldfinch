@@ -8,7 +8,6 @@
 </head>
 <body>
 <h1>Goldfinch</h1>
-
 <div class="progress-bar-container">
     <div class="progress-bar"></div>
 </div>
@@ -18,12 +17,11 @@
 <form id="file-form">
     <input type="file" name="file" />
     <button type="submit">上传</button>
+    <span id="upload-percent"></span>
 </form>
 <form id="message-form">
     <textarea id="myTextarea" placeholder="请输入消息" rows="5" ></textarea>
 </form>
-
-
 
 <script src="/socket.io/socket.io.js"></script>
 <script src="/jquery-3.6.0.min.js"></script>

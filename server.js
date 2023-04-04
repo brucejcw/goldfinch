@@ -114,6 +114,8 @@ io.on('connection', (socket) => {
   });
 });
 
-server.listen(9000, () => {
-  console.log('Server started at http://localhost:9000');
+const port = process.env.PORT || 9000
+
+server.listen(port, () => {
+  console.log(`Server started at http://localhost:${port}`);
 });
