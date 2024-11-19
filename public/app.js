@@ -13,11 +13,36 @@ function uuidV4() {
     return uuid.map((x) => x.toString(16)).join('');
 }
 
+
+
+function copyToClipboard(text, callback) {
+    navigator.clipboard.writeText(text)
+        .then(() => {
+            callback && callback()
+        })
+        .catch(err => {
+            console.error('Failed to copy text:', err);
+        });
+}
+
 function getMsgNode (msg) {
     let messageNode = $('<li>').text(msg)
+    const $copy = $('<div>').addClass('copy')
+
     if (msg.includes('🎉文件上传成功')) {
         messageNode = $('<li>').html(msg)
+    } else {
+        $copy.on('click', function(){
+            copyToClipboard(msg, function(){
+                $copy.text('Copied!')
+                setTimeout(function() {
+                    $copy.text('Copy')
+                }, 2000)
+            })
+        })
     }
+
+    messageNode.prepend($copy.text('Copy'))
     return messageNode
 }
 
@@ -88,6 +113,14 @@ fileForm.submit(function (e) {
     formData.append('file', file, fileName);
     upload(formData)
 });
+
+$('#send').on('click', function() {
+    event.preventDefault();
+    const messageInput = $('#myTextarea');
+    const message = messageInput.val();
+    socket.emit('chat message', message);
+    messageInput.val('');
+})
 
 $('#myTextarea').keydown(function(event) {
     // 检测是否按下Ctrl+V键

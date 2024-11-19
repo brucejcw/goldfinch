@@ -26,10 +26,21 @@ img {
     overflow: auto;
 }
 
+#messages .copy {
+    position: absolute;
+    top: 5px;
+    right: 20px;
+    color: #5c91dd;
+    font-size: 12px;
+}
+
 #messages li {
     margin: 10px 0;
-    white-space: pre;
+    white-space: break-spaces;
     position: relative;
+    border: 1px solid #ccc;
+    padding: 20px;
+    border-radius: 5px;
 }
 
 #messages li a {
